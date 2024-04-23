@@ -273,6 +273,43 @@ pip install tensorflow-macos tensorflow-metal
 pip install stardist
 ```
 
+##### Alternate method on Mac OS w/ Apple Silicon
+
+The approaches above and the various suggested approaches in image.sc and in the stardist github issues section didn't work for me.
+I tried :
+* installing the homebrew-installed gcc compiler suite and libomp but that resulted in many compile errors that I couldn't resolve
+* installing libomp from: https://mac.r-project.org/openmp/  and using the regular xcode clang compilers but that failed to compile some of the sources in libqhull
+* multiple permutations of pip install --no-binary ....   but everything failed with a variety of compiler errors, numpy build errors, all kinds of -fopenmp errors, etc.
+
+What DID work for me:
+* download the stardist 0.8.5 source package from: https://github.com/stardist/stardist/archive/refs/tags/0.8.5.zip
+* largely follow the build guide from sk-learn at: https://scikit-learn.org/stable/developers/advanced_installation.html#macos   as follows:
+* set up conda or mamba and create/activate a temporary development env (with Python 3.11):
+
+```
+conda create -n stardist-dev -c conda-forge python==3.11 numpy scipy cython joblib threadpoolctl pytest compilers llvm-openmp
+conda activate stardist-dev
+```
+cd to the stardist-0.8.5 directory and run the build process to create a wheel:
+```
+python setup.py bdist_wheel
+```
+Now deactivate the stardist-dev conda env (and you can discard it once done).
+You should have an install wheel in the dist directory that you can install into your stardist env as follows:
+
+```
+pip install <path_to_stardist-0.8.5_dir>/dist/stardist-0.8.5-cp311-cp311-macosx_14_0_arm64.whl
+```
+
+And note that the stardist installation itself does not require conda. That is all pip-based. You only need conda for the temporary build environment.
+
+One small wrinkle: the wheel resulting from the above is missing some libraries that are installed in the temporary development conda env. So you cannot install that wheel on a different computer. However, there's a work-around:
+In that same stardist-dev conda env, also pip install the "delocate" package: https://github.com/matthew-brett/delocate
+`pip install delocate`
+After building the wheel, fix it up so the missing libs become part of the wheel:
+`delocate-wheel -w fixed_wheels -v stardist-0.8.5-cp311-cp311-macosx_14_0_arm64.whl`
+Now the version of the wheel in fixed_wheels is complete and can be installed elsewhere where the build conda environment was not installed.
+
 #### Windows
 Please install the [Build Tools for Visual Studio 2019](https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2019) (or newer) from Microsoft to compile extensions for Python 3.6+ (see [this](https://wiki.python.org/moin/WindowsCompilers) for further information). During installation, make sure to select the *C++ build tools*. Note that the compiler comes with OpenMP support.
 
